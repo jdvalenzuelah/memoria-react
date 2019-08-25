@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+        <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+        <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="text/babel">
+
+            class Card extends React.Component {
+                
+                constructor(props) {
+                    super(props)
+
+                    this.state = {
+                        flipped: false,
+                    }
+                }
+
+                flip() {
+                    this.state.flipped = !this.state.flipped
+                    if (this.state.flipped) {
+                        this.props.selectedItem(this.props.id)
+                    }
+                    this.forceUpdate()
+                }
+
+                render() {
+                    const imgStyle = {
+                        width: '300px',
+                        height: 'auto',
+                        border: '5px solid green'
+                    }
+
+                    const divStyle = {
+                        cursor: "pointer",
+
+                    }
+
+                    const source = this.state.flipped ? this.props.src : "https://proxy.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.YI5CJruAAFPXFT3FHBoZ7AHaEo%26pid%3DApi&f=1"
+
+                    return (
+                        <div style={divStyle} onClick={this.flip.bind(this)}>
+                            <img src={source} style={imgStyle}/>
+                        </div>
+                    )
+                }
+            }
+
+            class Memory extends React.Component {
+
+                constructor(props) {
+                    super(props)
+                    this.state = {
+                        cardList: [],
+                        selected: {first: null, second: null},
+                        points: 0
+                    }
+                }
+
+                selectCard = cardId => {
+                    if(!this.state.selected.first) {
+                        this.state.selected.first = cardId
+                    } else if(!this.state.selected.second) {
+                        this.state.selected.second = cardId
+                    }
+                    console.log(this.state.selected)
+                }
+
+                generateCards(lst) {
+                    let list = [...lst, ...lst]
+                    const iter = list.length
+                    let res = []
+                    for(let i=0; i < iter; i++) {
+                        let id = i > 3 ? i - 4 : i
+                        console.log(id)
+                        res.push(<Card src={list[i]} key={i} id={id} selectedItem={this.selectCard}/>)
+                    }
+                    return res.sort( () => { return .5 - Math.random()})
+                }
+
+                render() {
+                    this.state.cardList = this.generateCards(this.props.options)
+                    const style = {
+                        display: 'inline-grid',
+                        gridTemplateColumns: 'auto auto auto',
+                        border: '2px solid green',
+                        gridRowEnd: 2
+                    }
+                    return (
+                        <div style={style}>
+                            {this.state.cardList}
+                        </div>
+                    )
+                }
+            }
+
+
+
+            const images = [
+                'images/newengland.png',
+                'images/buffalo.jpg',
+                'images/miami.jpg',
+                'images/newyork.png'
+            ]
+            
+            ReactDOM.render(
+                <Memory options={images}/>,
+                document.getElementById('root')
+            )
+        </script>
+    </body>
+</html>
