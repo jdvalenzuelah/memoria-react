@@ -9,6 +9,55 @@
     <body>
         <div id="root"></div>
         <script type="text/babel">
+        //TODO Card flip animation
+            class GameController extends React.Component {
+                constructor(props) {
+                    super(props)
+                    this.state  = {
+                        points: 0,
+                        moves: 0
+                    }
+                }
+
+                generateCards(lst) {
+                    let list = [...lst, ...lst]
+                    return list.sort( () => { return .5 - Math.random()})
+                }
+
+                handlePoints = () => {
+                    this.state.points += 1
+                    if(this.state.points === this.props.options.length) {
+                        alert('Juego completado')
+                    }
+                }
+
+                handleMoves = () => {
+                    this.state.moves += 1
+                    this.forceUpdate()
+                }
+
+                render() {
+                    const list = this.generateCards(this.props.options)
+                    const style = {
+                        position: 'absolute',
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)'
+                    }
+                    const styleP = {
+                        position: 'absolute',
+                        left: '50%',
+                        top: '-5%',
+                        transform: 'translate(-50%, 0)'
+                    }
+                    return (
+                        <div style={style}>
+                            <p style={styleP}> Movimientos: {this.state.moves} </p>
+                            <Memory options={list} OnEarnedPoint={this.handlePoints.bind(this)} onMove={this.handleMoves.bind(this)}/>
+                        </div>
+                    )
+                }
+            }
 
             class Card extends React.Component {
                 
@@ -16,34 +65,42 @@
                     super(props)
 
                     this.state = {
-                        flipped: false,
+                        flipped: this.props.flipped,
+                        clicky: true
                     }
                 }
 
                 flip() {
                     this.state.flipped = !this.state.flipped
-                    if (this.state.flipped) {
-                        this.props.selectedItem(this.props.id)
-                    }
                     this.forceUpdate()
+                }
+
+                removeClick() {
+                    this.state.clicky = false
+                    this.forceUpdate()
+                }
+
+                handleClick() {
+                    this.props.onClick(this.props.id)
+                    this.flip()
                 }
 
                 render() {
                     const imgStyle = {
-                        width: '300px',
+                        width: '175px',
                         height: 'auto',
-                        border: '5px solid green'
+                        border: '5px solid #A6071D',
                     }
 
                     const divStyle = {
-                        cursor: "pointer",
+                        cursor: 'pointer'
 
                     }
 
-                    const source = this.state.flipped ? this.props.src : "https://proxy.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.YI5CJruAAFPXFT3FHBoZ7AHaEo%26pid%3DApi&f=1"
+                    const source = this.state.flipped ? this.props.src : 'images/logo.jpg'
 
                     return (
-                        <div style={divStyle} onClick={this.flip.bind(this)}>
+                        <div style={divStyle} onClick={this.state.clicky ? this.handleClick.bind(this): () => {return}}>
                             <img src={source} style={imgStyle}/>
                         </div>
                     )
@@ -57,58 +114,91 @@
                     this.state = {
                         cardList: [],
                         selected: {first: null, second: null},
-                        points: 0
                     }
+                    this.props.options.forEach((element, index) => {
+                        this.state.cardList.push(
+                            {
+                                src: element,
+                                id: index + 1,
+                                flipped: false,
+                                key: index + 1,
+                                onClick: this.cardClick.bind(this)
+                            }
+                        )
+                    });
                 }
 
-                selectCard = cardId => {
-                    if(!this.state.selected.first) {
-                        this.state.selected.first = cardId
-                    } else if(!this.state.selected.second) {
-                        this.state.selected.second = cardId
-                    }
-                    console.log(this.state.selected)
-                }
+                cardClick = card => {
+                    this.props.onMove()
+                    if(this.state.selected.first === card) {
+                        this.state.selected.first = null
+                    } else {
+                        if(!this.state.selected.first) {
+                            this.state.selected.first = card
+                        } else if(!this.state.selected.second) {
+                            this.state.selected.second = card
+                        }
+                        if(this.state.selected.first && this.state.selected.second) {
+                            let {first, second} = this.state.selected
+                            if(this.state.cardList[first-1].src !== this.state.cardList[second-1].src) {
+                                this.state.selected.first = null
+                                this.state.selected.second = null
+                                setTimeout(() => {
+                                    this.refs[`${first}`].flip()
+                                    this.refs[`${second}`].flip()
+                                }, 500);
 
-                generateCards(lst) {
-                    let list = [...lst, ...lst]
-                    const iter = list.length
-                    let res = []
-                    for(let i=0; i < iter; i++) {
-                        let id = i > 3 ? i - 4 : i
-                        console.log(id)
-                        res.push(<Card src={list[i]} key={i} id={id} selectedItem={this.selectCard}/>)
+                            } else {
+                                this.state.selected.first = null
+                                this.state.selected.second = null
+                                this.refs[`${first}`].removeClick()
+                                this.refs[`${second}`].removeClick()
+                                setTimeout(() => {
+                                    this.props.OnEarnedPoint()
+                                }, 500)
+                            }
+                        }
                     }
-                    return res.sort( () => { return .5 - Math.random()})
-                }
+                }           
 
                 render() {
-                    this.state.cardList = this.generateCards(this.props.options)
                     const style = {
                         display: 'inline-grid',
                         gridTemplateColumns: 'auto auto auto',
-                        border: '2px solid green',
-                        gridRowEnd: 2
+                        boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)'
                     }
+                    const cards = []
+                    this.state.cardList.forEach(element => {
+                        cards.push(
+                            <Card
+                                src={element.src}
+                                id={element.id}
+                                key={element.key}
+                                ref={`${element.key}`}
+                                flipped={element.flipped}
+                                onClick={element.onClick}
+                            />
+                        )
+                    });
                     return (
                         <div style={style}>
-                            {this.state.cardList}
+                            {cards}
                         </div>
                     )
                 }
             }
 
-
-
             const images = [
                 'images/newengland.png',
                 'images/buffalo.jpg',
                 'images/miami.jpg',
-                'images/newyork.png'
+                'images/newyork.png',
+                'images/seattle.jpg',
+                'images/cleveland.jpg'
             ]
             
             ReactDOM.render(
-                <Memory options={images}/>,
+                <GameController options={images}/>,
                 document.getElementById('root')
             )
         </script>
